@@ -38,13 +38,13 @@ const queryPastEventsByType = async (contract, eventType, startingBlock, endingB
     let fromBlock = startingBlock;
 
     while (fromBlock < endingBlock) {
-      toBlock = fromBlock + MAX_BATCH_SIZE < endingBlock ? fromBlock + MAX_BATCH_SIZE - 1 : endingBlock;
+      toBlock = fromBlock + MAX_BATCH_SIZE <= endingBlock ? fromBlock + MAX_BATCH_SIZE : endingBlock;
       promises.push(contract.getPastEvents(eventType, { fromBlock, toBlock }));
       fromBlock += MAX_BATCH_SIZE;
     }
 
     const resolvedPromises = await Promise.all(promises);
-    // We get back a 2D array by batch, so we need to flatten the array before passing it back
+    // We get back a 2D array by batch, so we need to flatten the array before returning
     return resolvedPromises.reduce((acc, currentValue) => acc.concat(...currentValue), []);
   } catch (err) {
     throw new Error(err);
@@ -56,14 +56,12 @@ const countKittyBirthsFreqById = (kittyBirthEvents) => {
 
   kittyBirthEvents.forEach((birth) => {
     const { matronId } = birth.returnValues;
-    // Need to check for the '0' case because there exists kittens without matronIds that were auto created.
-    if (matronId !== '0') {
-      if (kittyBirthEventsMap.has(matronId)) {
-        const kittyBirthCount = kittyBirthEventsMap.get(matronId);
-        kittyBirthEventsMap.set(matronId, kittyBirthCount + 1);
-      } else {
-        kittyBirthEventsMap.set(matronId, 1);
-      }
+
+    if (kittyBirthEventsMap.has(matronId)) {
+      const kittyBirthCount = kittyBirthEventsMap.get(matronId);
+      kittyBirthEventsMap.set(matronId, kittyBirthCount + 1);
+    } else {
+      kittyBirthEventsMap.set(matronId, 1);
     }
   });
 
@@ -78,12 +76,14 @@ const convertFreqMapToArrayAndFindBigMommaId = (kittyBirthFreqMap) => {
   kittyBirthEventsArray.sort((a, b) => b.births - a.births);
 
   console.log(`
-    Top 3 Mommas:
+    Top 5 Mommas:
     1) ID: ${kittyBirthEventsArray[0].kittyId}, Births: ${kittyBirthEventsArray[0].births}
     2) ID: ${kittyBirthEventsArray[1].kittyId}, Births: ${kittyBirthEventsArray[1].births}
-    3) ID: ${kittyBirthEventsArray[2].kittyId}, Births: ${kittyBirthEventsArray[2].births}`);
+    3) ID: ${kittyBirthEventsArray[2].kittyId}, Births: ${kittyBirthEventsArray[2].births}
+    4) ID: ${kittyBirthEventsArray[3].kittyId}, Births: ${kittyBirthEventsArray[3].births}
+    5) ID: ${kittyBirthEventsArray[4].kittyId}, Births: ${kittyBirthEventsArray[4].births}`);
 
-  const bigMommaId = kittyBirthEventsArray[0].kittyId;
+  const bigMommaId = kittyBirthEventsArray[1].kittyId;
   return bigMommaId;
 };
 
