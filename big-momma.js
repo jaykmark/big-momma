@@ -10,14 +10,18 @@ const main = async (startingBlock, endingBlock) => {
   const cryptoKittiesAbi = await fetchContractAbi(CRYPTO_KITTIES_ABI_URL);
   const cryptoKittiesContract = new web3.eth.Contract(cryptoKittiesAbi, CRYPTO_KITTIES_ADDRESS);
   const cryptoKittyBirthEvents = await queryPastEventsByType(cryptoKittiesContract, 'Birth', startingBlock, endingBlock);
-  console.log(`Total Births: ${cryptoKittyBirthEvents.length}`);
+
+  console.log(`Total births between ${startingBlock} and ${endingBlock} = ${cryptoKittyBirthEvents.length} \n`);
+
   const cryptoKittyBirthFreqMap = countKittyBirthsFreqById(cryptoKittyBirthEvents);
-  const bigMommaId = convertFreqMapToArrayAndFindBigMommaId(cryptoKittyBirthFreqMap);
+  const bigMommaId = convertFreqMapToArrayAndSortToFindBigMommaId(cryptoKittyBirthFreqMap);
   const bigMommaDetails = await getKittyDetailsById(cryptoKittiesContract, bigMommaId);
+
   console.log(`Big Momma Details:
-    Birth Timestamp: ${bigMommaDetails.birthTime}
-    Generation: ${bigMommaDetails.generation}
-    Genes: ${bigMommaDetails.genes}`);
+  - Birth Timestamp: ${bigMommaDetails.birthTime}
+  - Generation: ${bigMommaDetails.generation}
+  - Genes: ${bigMommaDetails.genes}`);
+
   return bigMommaDetails;
 };
 
@@ -38,7 +42,7 @@ const queryPastEventsByType = async (contract, eventType, startingBlock, endingB
     let fromBlock = startingBlock;
 
     while (fromBlock < endingBlock) {
-      toBlock = fromBlock + MAX_BATCH_SIZE <= endingBlock ? fromBlock + MAX_BATCH_SIZE : endingBlock;
+      toBlock = fromBlock + MAX_BATCH_SIZE < endingBlock ? fromBlock + MAX_BATCH_SIZE - 1 : endingBlock;
       promises.push(contract.getPastEvents(eventType, { fromBlock, toBlock }));
       fromBlock += MAX_BATCH_SIZE;
     }
@@ -68,21 +72,22 @@ const countKittyBirthsFreqById = (kittyBirthEvents) => {
   return kittyBirthEventsMap;
 };
 
-const convertFreqMapToArrayAndFindBigMommaId = (kittyBirthFreqMap) => {
+const convertFreqMapToArrayAndSortToFindBigMommaId = (kittyBirthFreqMap) => {
   const kittyBirthEventsArray = Array.from(kittyBirthFreqMap).map(([kittyId, births]) => {
     return { kittyId, births };
   });
 
   kittyBirthEventsArray.sort((a, b) => b.births - a.births);
 
-  console.log(`
-    Top 5 Mommas:
+  console.log(`Top 5 Mommas:
     1) ID: ${kittyBirthEventsArray[0].kittyId}, Births: ${kittyBirthEventsArray[0].births}
     2) ID: ${kittyBirthEventsArray[1].kittyId}, Births: ${kittyBirthEventsArray[1].births}
     3) ID: ${kittyBirthEventsArray[2].kittyId}, Births: ${kittyBirthEventsArray[2].births}
     4) ID: ${kittyBirthEventsArray[3].kittyId}, Births: ${kittyBirthEventsArray[3].births}
-    5) ID: ${kittyBirthEventsArray[4].kittyId}, Births: ${kittyBirthEventsArray[4].births}`);
+    5) ID: ${kittyBirthEventsArray[4].kittyId}, Births: ${kittyBirthEventsArray[4].births}
+    `);
 
+  // Grab id of index 1 since index 0 is made up of gen0 Kitties with no matronId.
   const bigMommaId = kittyBirthEventsArray[1].kittyId;
   return bigMommaId;
 };
