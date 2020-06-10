@@ -9,6 +9,9 @@ const MAX_BATCH_SIZE = 5000;
 const main = async (startingBlock, endingBlock) => {
   const cryptoKittiesAbi = await fetchContractAbi(CRYPTO_KITTIES_ABI_URL);
   const cryptoKittiesContract = new web3.eth.Contract(cryptoKittiesAbi, CRYPTO_KITTIES_ADDRESS);
+
+  console.log(`Querying blocks ${startingBlock} -> ${endingBlock}...  \n`);
+
   const cryptoKittyBirthEvents = await queryPastEventsByType(cryptoKittiesContract, 'Birth', startingBlock, endingBlock);
 
   console.log(`Total births between ${startingBlock} and ${endingBlock} = ${cryptoKittyBirthEvents.length} \n`);
